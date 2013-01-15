@@ -169,7 +169,7 @@ class Chef
           # or maybe this:
           #   <?xml version="1.0" encoding="UTF-8"?>
           #   <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>not_here/Test.txtd</Key><RequestId>6BA9A12E179BD984</RequestId><HostId>K4Osi2DIoQ8I41RpHRqgp0doVMBgTpSorKSl+zFQQXJJWHyBv5YfHnFkH9DBQGbK</HostId></Error>
-          if file.size < 1000
+          if file.size < 500
             file.rewind
             fileContents = file.read
             match = fileContents.match(/<Error><Code>(.*)<\/Code><Message>(.*)<\/Message>.*<\/Error>/)
