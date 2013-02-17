@@ -107,30 +107,40 @@ class Chef
 
       def action_create
         # Only do the S3 logic if it looks like an S3 URL (case insensitive)
-        if @new_resource.source.match(/^s3/i)
-          Chef::Log.debug("Checking #{@new_resource} for changes")
 
-          if current_resource_matches_target_checksum?
-            Chef::Log.debug("File #{@new_resource} checksum matches target checksum (#{@new_resource.checksum}), not updating")
-          else
-            Chef::Log.debug("File #{@current_resource} checksum didn't match target checksum (#{@new_resource.checksum}), updating")
-            fetch_from_s3(@new_resource.source) do |raw_file|
-              if matches_current_checksum?(raw_file)
-                Chef::Log.debug "#{@new_resource}: Target and Source checksums are the same, taking no action"
-              else
-                backup_new_resource
-                Chef::Log.debug "copying remote file from origin #{raw_file.path} to destination #{@new_resource.path}"
-                FileUtils.cp raw_file.path, @new_resource.path
-                @new_resource.updated_by_last_action true
+        sources = Array.new
+        if @new_resource.source.class == String
+          sources << @new_resource.source
+        else
+          sources = @new_resource.source
+        end
+        sources.each do |ss| 
+          if ss.match(/^s3/i)
+            Chef::Log.debug("Checking #{@new_resource} for changes")
+
+            if current_resource_matches_target_checksum?
+              Chef::Log.debug("File #{@new_resource} checksum matches target checksum (#{@new_resource.checksum}), not updating")
+            else
+              Chef::Log.debug("File #{@current_resource} checksum didn't match target checksum (#{@new_resource.checksum}), updating")
+              fetch_from_s3(ss) do |raw_file|
+                if matches_current_checksum?(raw_file)
+                  Chef::Log.debug "#{@new_resource}: Target and Source checksums are the same, taking no action"
+                else
+                  backup_new_resource
+                  Chef::Log.debug "copying remote file from origin #{raw_file.path} to destination #{@new_resource.path}"
+                  FileUtils.cp raw_file.path, @new_resource.path
+                  @new_resource.updated_by_last_action true
+                end
               end
             end
-          end
-          enforce_ownership_and_permissions
+            enforce_ownership_and_permissions
 
-          @new_resource.updated
-        else 
-          # Appears not to be an S3 URL. Delegate to the superclass.
-          self.class.superclass.instance_method("action_create").bind(self).call
+            @new_resource.updated
+          else 
+            # Appears not to be an S3 URL. Delegate to the superclass.
+            self.class.superclass.instance_method("action_create").bind(self).call
+          end
+
         end
       end
 
