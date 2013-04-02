@@ -107,14 +107,22 @@ class Chef
 
       def action_create
         # Only do the S3 logic if it looks like an S3 URL (case insensitive)
-        if @new_resource.source.match(/^s3/i)
-          Chef::Log.debug("Checking #{@new_resource} for changes")
+        # Not sure what changed that source could become an array, but
+        # this fixes that
+        if @new_resource.source.kind_of?(Array)
+          @the_source = @new_resource.source[0]
+        else
+          @the_source = @new_resource.source
+        end
+        
+        if @the_source.match(/^s3/i)
+          Chef::Log.debug("Matches s3, Checking #{@new_resource} for changes")
 
           if current_resource_matches_target_checksum?
             Chef::Log.debug("File #{@new_resource} checksum matches target checksum (#{@new_resource.checksum}), not updating")
           else
             Chef::Log.debug("File #{@current_resource} checksum didn't match target checksum (#{@new_resource.checksum}), updating")
-            fetch_from_s3(@new_resource.source) do |raw_file|
+            fetch_from_s3(@the_source) do |raw_file|
               if matches_current_checksum?(raw_file)
                 Chef::Log.debug "#{@new_resource}: Target and Source checksums are the same, taking no action"
               else
